@@ -4,14 +4,17 @@ const STATUS_NOT_FOUND = 404;
 const BAD_REQUEST = 400;
 const INTERNAL_SERVER_ERROR = 500;
 
-const getUsers = (req, res) => {
-  // eslint-disable-next-line no-console
-  console.log('req.user._id', req.user._id);
-  User.find({})
-    .then((users) => res.status(200).send(users))
-    .catch(() => res.status(INTERNAL_SERVER_ERROR).send({
-      message: 'Internal Server Error',
-    }));
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find({});
+    res.status(200).send(users);
+  } catch (err) {
+    res
+      .status(INTERNAL_SERVER_ERROR)
+      .send({
+        message: 'Internal Server Error',
+      });
+  }
 };
 
 const getUserById = (req, res) => {
