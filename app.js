@@ -24,6 +24,17 @@ app.use((req, res, next) => {
 
 app.use(router);
 
+app.use((req, res, next) => {
+  const error = new Error('Page not found');
+  error.status = 404;
+  next(error);
+});
+
+app.use((error, req, res) => {
+  res.status(error.status || 500);
+  res.send(error.message);
+});
+
 app.listen(3000, () => {
   // eslint-disable-next-line no-console
   console.log('Слушаю порт 3000');
