@@ -66,32 +66,37 @@ const createUser = (req, res) => {
     });
 };
 
-const updateUser = (req, res) => {
+const updateUser = async (req, res) => {
   const { name, about } = req.body;
-
-  User.findByIdAndUpdate(req.user._id, { name, about }, { new: true, runValidators: true })
-    .then((user) => res.status(200).send({ data: user }))
-    .catch((err) => {
-      if (err.message === 'Not found') {
-        res
-          .status(STATUS_NOT_FOUND)
-          .send({
-            message: 'User not found',
-          });
-      } else if (err.message === 'ValidationError') {
-        res
-          .status(BAD_REQUEST)
-          .send({
-            message: 'Bad Request',
-          });
-      } else {
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .send({
-            message: 'Internal Server Error',
-          });
-      }
-    });
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { name, about },
+      { new: true, runValidators: true },
+    )
+      .orFail(() => new Error('Not found'));
+    res.status(200).send(user);
+  } catch (err) {
+    if (err.message === 'Not found') {
+      res
+        .status(STATUS_NOT_FOUND)
+        .send({
+          message: 'User not found',
+        });
+    } else if (err.name === 'ValidationError') {
+      res
+        .status(BAD_REQUEST)
+        .send({
+          message: 'Bad Request',
+        });
+    } else {
+      res
+        .status(INTERNAL_SERVER_ERROR)
+        .send({
+          message: 'Internal Server Error',
+        });
+    }
+  }
 };
 
 const updateAvatar = (req, res) => {
