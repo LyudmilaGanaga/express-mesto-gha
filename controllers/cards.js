@@ -75,7 +75,13 @@ const likeCard = (req, res) => {
         res
           .status(STATUS_NOT_FOUND)
           .send({
-            message: 'Card not found',
+            message: 'User not found',
+          });
+      } else if (err.message === 'Bad Request') {
+        res
+          .status(BAD_REQUEST)
+          .send({
+            message: 'Bad Request',
           });
       } else {
         res
