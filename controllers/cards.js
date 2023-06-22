@@ -32,34 +32,34 @@ const createCard = (req, res) => {
     });
 };
 
-const deleteCard = (req, res) => {
-  Card.findByIdAndDelete(req.params.cardId)
-    .then((card) => {
-      if (!card) {
-        res
-          .status(STATUS_NOT_FOUND)
-          .send({
-            message: 'Card not found',
-          });
-      } else {
-        res.status(200).send(card);
-      }
-    })
-    .catch((err) => {
-      if (err.message.includes('validation failed')) {
-        res
-          .status(BAD_REQUEST)
-          .send({
-            message: 'Bad Request',
-          });
-      } else {
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .send({
-            message: 'Internal Server Error',
-          });
-      }
-    });
+const deleteCard = async (req, res) => {
+  try {
+    const card = await Card.findByIdAndDelete(
+      req.params.cardId,
+    )
+      .orFail(() => new Error('Not found'));
+    res.status(200).send(card);
+  } catch (err) {
+    if (err.message === 'Not found') {
+      res
+        .status(STATUS_NOT_FOUND)
+        .send({
+          message: 'Card not found',
+        });
+    } else if (err.name === 'CastError') {
+      res
+        .status(BAD_REQUEST)
+        .send({
+          message: 'Bad Request',
+        });
+    } else {
+      res
+        .status(INTERNAL_SERVER_ERROR)
+        .send({
+          message: 'Internal server Error',
+        });
+    }
+  }
 };
 
 const likeCard = async (req, res) => {
