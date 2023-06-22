@@ -39,7 +39,8 @@ const getUserById = (req, res) => {
 };
 
 const createUser = (req, res) => {
-  User.create(req.body)
+  const { name, about, avatar } = req.body;
+  User.create({ name, about, avatar })
     .then((user) => res.status(201).send(user))
     .catch(() => res
       .status(INTERNAL_SERVER_ERROR)
