@@ -42,11 +42,21 @@ const createUser = (req, res) => {
   const { name, about, avatar } = req.body;
   User.create({ name, about, avatar })
     .then((user) => res.status(201).send(user))
-    .catch(() => res
-      .status(INTERNAL_SERVER_ERROR)
-      .send({
-        message: 'Internal Server Error',
-      }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res
+          .status(BAD_REQUEST)
+          .send({
+            message: 'Bad Request',
+          });
+      } else {
+        res
+          .status(INTERNAL_SERVER_ERROR)
+          .send({
+            message: 'Internal Server Error',
+          });
+      }
+    });
 };
 
 const updateUser = (req, res) => {
