@@ -20,13 +20,19 @@ const getUsers = async (req, res) => {
 const getUserById = (req, res) => {
   User.findById(req.params.userId)
     .orFail(() => new Error('Not found'))
-    .then((user) => res.status(200).send(user))
+    .then((user) => res.status(200).send({ data: user }))
     .catch((err) => {
       if (err.message === 'Not found') {
         res
           .status(STATUS_NOT_FOUND)
           .send({
             message: 'User not found',
+          });
+      } else if (err.message === 'Bad Request') {
+        res
+          .status(BAD_REQUEST)
+          .send({
+            message: 'Bad Request',
           });
       } else {
         res

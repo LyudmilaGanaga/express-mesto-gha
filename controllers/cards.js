@@ -69,7 +69,7 @@ const likeCard = (req, res) => {
     { new: true },
   )
     .orFail(() => new Error('Not found'))
-    .then((card) => res.status(200).send(card))
+    .then((card) => res.status(200).send({ data: card }))
     .catch((err) => {
       if (err.message === 'Not found') {
         res
@@ -100,13 +100,19 @@ const dislikeCard = (req, res) => {
     { new: true },
   )
     .orFail(() => new Error('Not found'))
-    .then((card) => res.status(200).send(card))
+    .then((card) => res.status(200).send({ data: card }))
     .catch((err) => {
       if (err.message === 'Not found') {
         res
           .status(STATUS_NOT_FOUND)
           .send({
-            message: 'Card not found',
+            message: 'User not found',
+          });
+      } else if (err.message === 'Bad Request') {
+        res
+          .status(BAD_REQUEST)
+          .send({
+            message: 'Bad Request',
           });
       } else {
         res
