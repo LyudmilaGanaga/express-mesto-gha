@@ -17,25 +17,32 @@ const getUsers = async (req, res) => {
   }
 };
 
-const getUserById = (req, res) => {
-  User.findById(req.params.userId)
-    .orFail(() => new Error('Not found'))
-    .then((user) => res.status(200).send(user))
-    .catch((err) => {
-      if (err.message === 'Not found') {
-        res
-          .status(STATUS_NOT_FOUND)
-          .send({
-            message: 'User not found',
-          });
-      } else {
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .send({
-            message: 'Internal Server Error',
-          });
-      }
-    });
+const getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId)
+      .orFail(() => new Error('Not found')); // Мы попадаем сюда, когда ничего не найдено
+    res.status(200).send(user);
+  } catch (err) {
+    if (err.message === 'Not found') {
+      res
+        .status(STATUS_NOT_FOUND)
+        .send({
+          message: 'User not found',
+        });
+    } else if (err.name === 'CastError') {
+      res
+        .status(BAD_REQUEST)
+        .send({
+          message: 'Bad Request',
+        });
+    } else {
+      res
+        .status(INTERNAL_SERVER_ERROR)
+        .send({
+          message: 'Internal server Error',
+        });
+    }
+  }
 };
 
 const createUser = (req, res) => {
