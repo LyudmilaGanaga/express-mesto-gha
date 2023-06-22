@@ -30,9 +30,14 @@ app.use((req, res, next) => {
   next(error);
 });
 
-app.use((error, req, res) => {
+// eslint-disable-next-line no-unused-vars
+app.use((error, req, res, next) => {
   res.status(error.status || 500);
-  res.send(error.message);
+  res.json({
+    error: {
+      message: error.message,
+    },
+  });
 });
 
 app.listen(3000, () => {
