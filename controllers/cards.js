@@ -21,7 +21,7 @@ const createCard = (req, res) => {
     .then((card) => res.status(201).send(card))
     .catch((err) => {
       if (err.message.includes('validation failed')) {
-        res.status(BAD_REQUEST).send({ message: 'Data is incorrect' });
+        res.status(BAD_REQUEST).send({ message: 'Bad Request' });
       } else {
         res
           .status(INTERNAL_SERVER_ERROR)
@@ -50,37 +50,6 @@ const deleteCard = (req, res) => {
         res
           .status(BAD_REQUEST)
           .send({
-            message: 'Data is incorrect',
-          });
-      } else {
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .send({
-            message: 'Internal Server Error',
-          });
-      }
-    });
-};
-
-const likeCard = (req, res) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user._id } },
-    { new: true },
-  )
-    .orFail(() => new Error('Not found'))
-    .then((card) => res.status(200).send(card))
-    .catch((err) => {
-      if (err.message === 'Not found') {
-        res
-          .status(STATUS_NOT_FOUND)
-          .send({
-            message: 'Card not found',
-          });
-      } else if (err.message === 'Bad Request') {
-        res
-          .status(BAD_REQUEST)
-          .send({
             message: 'Bad Request',
           });
       } else {
@@ -93,35 +62,68 @@ const likeCard = (req, res) => {
     });
 };
 
-const dislikeCard = (req, res) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $pull: { likes: req.user._id } },
-    { new: true },
-  )
-    .orFail(() => new Error('Not found'))
-    .then((card) => res.status(200).send(card))
-    .catch((err) => {
-      if (err.message === 'Not found') {
-        res
-          .status(STATUS_NOT_FOUND)
-          .send({
-            message: 'Card not found',
-          });
-      } else if (err.name === 'Bad Request') {
-        res
-          .status(BAD_REQUEST)
-          .send({
-            message: 'Bad Request',
-          });
-      } else {
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .send({
-            message: 'Internal Server Error',
-          });
-      }
-    });
+const likeCard = async (req, res) => {
+  try {
+    const card = await Card.findByIdAndUpdate(
+      req.params.cardId,
+      { $addToSet: { likes: req.user._id } },
+      { new: true },
+    )
+      .orFail(() => new Error('Not found'));
+    res.status(200).send(card);
+  } catch (err) {
+    if (err.message === 'Not found') {
+      res
+        .status(STATUS_NOT_FOUND)
+        .send({
+          message: 'Card not found',
+        });
+    } else if (err.name === 'CastError') {
+      res
+        .status(BAD_REQUEST)
+        .send({
+          message: 'Bad Request',
+        });
+    } else {
+      res
+        .status(INTERNAL_SERVER_ERROR)
+        .send({
+          message: 'Internal server Error',
+        });
+    }
+  }
+};
+
+const dislikeCard = async (req, res) => {
+  try {
+    const card = await Card.findByIdAndUpdate(
+      req.params.cardId,
+      { $pull: { likes: req.user._id } },
+      { new: true },
+    )
+      .orFail(() => new Error('Not found'));
+    res.status(200).send(card);
+  } catch (err) {
+    if (err.message === 'Not found') {
+      res
+        .status(STATUS_NOT_FOUND)
+        .send({
+          message: 'Card not found',
+        });
+    } else if (err.name === 'CastError') {
+      res
+        .status(BAD_REQUEST)
+        .send({
+          message: 'Bad Request',
+        });
+    } else {
+      res
+        .status(INTERNAL_SERVER_ERROR)
+        .send({
+          message: 'Internal server Error',
+        });
+    }
+  }
 };
 
 module.exports = {
