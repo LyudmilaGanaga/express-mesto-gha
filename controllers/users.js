@@ -20,7 +20,7 @@ const getUsers = async (req, res) => {
 const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
-      .orFail(() => new Error('Not found')); // Мы попадаем сюда, когда ничего не найдено
+      .orFail(() => new Error('Not found'));
     res.status(200).send(user);
   } catch (err) {
     if (err.message === 'Not found') {
@@ -33,7 +33,7 @@ const getUserById = async (req, res) => {
       res
         .status(BAD_REQUEST)
         .send({
-          message: 'Bad Request',
+          message: 'Data is incorrect',
         });
     } else {
       res
@@ -78,7 +78,7 @@ const updateUser = (req, res) => {
           .send({
             message: 'User not found',
           });
-      } else if (err.message === 'Bad Request') {
+      } else if (err.message === 'ValidationError') {
         res
           .status(BAD_REQUEST)
           .send({
