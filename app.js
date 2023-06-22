@@ -26,12 +26,12 @@ app.use(router);
 
 app.use((req, res, next) => {
   const error = new Error('Page not found');
-  error.status = 404;
+  res.status(404).send({ message: 'Page not found' });
   next(error);
 });
 
 // eslint-disable-next-line no-unused-vars
-app.use((error, req, res, next) => {
+app.use((error, req, res) => {
   res.status(error.status || 500);
   res.json({
     error: {
