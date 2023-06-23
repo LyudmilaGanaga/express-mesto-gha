@@ -33,7 +33,7 @@ const getUserById = async (req, res) => {
       res
         .status(BAD_REQUEST)
         .send({
-          message: 'Data is incorrect',
+          message: 'Bad Request',
         });
     } else {
       res
