@@ -12,7 +12,7 @@ const getUsers = async (req, res) => {
     res
       .status(INTERNAL_SERVER_ERROR)
       .send({
-        message: 'Internal Server Error',
+        message: 'На сервере произошла ошибка',
       });
   }
 };
@@ -39,7 +39,7 @@ const getUserById = async (req, res) => {
       res
         .status(INTERNAL_SERVER_ERROR)
         .send({
-          message: 'Internal server Error',
+          message: 'На сервере произошла ошибка',
         });
     }
   }
@@ -60,7 +60,7 @@ const createUser = (req, res) => {
         res
           .status(INTERNAL_SERVER_ERROR)
           .send({
-            message: 'Internal Server Error',
+            message: 'На сервере произошла ошибка',
           });
       }
     });
@@ -93,7 +93,7 @@ const updateUser = async (req, res) => {
       res
         .status(INTERNAL_SERVER_ERROR)
         .send({
-          message: 'Internal Server Error',
+          message: 'На сервере произошла ошибка',
         });
     }
   }
@@ -121,7 +121,7 @@ const updateAvatar = (req, res) => {
         res
           .status(INTERNAL_SERVER_ERROR)
           .send({
-            message: 'Internal Server Error',
+            message: 'На сервере произошла ошибка',
           });
       }
     });

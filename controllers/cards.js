@@ -26,7 +26,7 @@ const createCard = (req, res) => {
         res
           .status(INTERNAL_SERVER_ERROR)
           .send({
-            message: 'Internal Server Error',
+            message: 'На сервере произошла ошибка',
           });
       }
     });
@@ -56,7 +56,7 @@ const deleteCard = async (req, res) => {
       res
         .status(INTERNAL_SERVER_ERROR)
         .send({
-          message: 'Internal server Error',
+          message: 'На сервере произошла ошибка',
         });
     }
   }
@@ -88,7 +88,7 @@ const likeCard = async (req, res) => {
       res
         .status(INTERNAL_SERVER_ERROR)
         .send({
-          message: 'Internal server Error',
+          message: 'На сервере произошла ошибка',
         });
     }
   }
@@ -120,7 +120,7 @@ const dislikeCard = async (req, res) => {
       res
         .status(INTERNAL_SERVER_ERROR)
         .send({
-          message: 'Internal server Error',
+          message: 'На сервере произошла ошибка',
         });
     }
   }
