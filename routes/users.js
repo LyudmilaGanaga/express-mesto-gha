@@ -12,8 +12,6 @@ const {
 
 router.get('/', getUsers, validationGetUser);
 router.get('/:userId', getUserById);
-
-// возвращается информацию о текущем пользователе
 router.get('/me/', getCurrentUser, validationCreateUser);
 
 // router.post('/', createUser);
