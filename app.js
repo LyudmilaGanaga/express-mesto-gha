@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
+const { errors } = require('celebrate');
 const router = require('./routes');
 const ErrorHandler = require('./middlewares/error');
 const auth = require('./middlewares/auth');
@@ -19,6 +20,7 @@ app.use(router);
 app.use(ErrorHandler);
 app.use(auth);
 app.use(authRout);
+app.use(errors());
 
 app.use((req, res, next) => {
   const error = new Error('Page not found');
