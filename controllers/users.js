@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 const bcrypt = require('bcryptjs');
-const jsonWebtoken = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
 const BadRequest = require('../errors/BadRequest');
@@ -69,18 +69,22 @@ const createUser = (req, res, next) => {
     .catch(next);
 };
 
-const login = (req, res, next) => {
+const login = (req, res) => {
   const { email, password } = req.body;
 
-  return User
-    .findUserByCredentials(email, password)
+  return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jsonWebtoken({ _id: user._id }, 'SECRET', {
-        expiresIn: '7d',
-      });
-      res.send({ jsonWebtoken });
+      // создадим токен
+      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
+
+      // вернём токен
+      res.send({ token });
     })
-    .catch(next);
+    .catch((err) => {
+      res
+        .status(401)
+        .send({ message: err.message });
+    });
 };
 
 const updateUser = (req, res, next) => {
