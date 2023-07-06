@@ -3,7 +3,7 @@ const NotFoundError = require('../errors/NotFoundError');
 
 const userRoutes = require('./users');
 const cardRoutes = require('./cards');
-const auth = require('./auth');
+const auth = require('./authRout');
 
 router.use('/users', userRoutes, auth);
 router.use('/cards', cardRoutes, auth);

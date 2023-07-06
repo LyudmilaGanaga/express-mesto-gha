@@ -34,11 +34,11 @@ const deleteCard = (req, res, next) => {
     .then((card) => {
       if (!card) {
         throw new NotFoundError('Card not found');
-      } else if (card.owner.toString() !== req.user._id.toString()) {
+      } else if (!card.owner.equals(req.user._id)) {
         throw new UnauthorizedCardDeleteException('Запрет удаления');
       } else {
-        Card.deleteOne(cardId)
-          .then(() => res.status(200).send(card))
+        Card.findOneAndDelete({ _id: cardId })
+          .then((deletedCard) => res.status(200).send(deletedCard))
           .catch((err) => {
             next(err);
           });

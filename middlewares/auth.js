@@ -1,22 +1,20 @@
 const jwt = require('jsonwebtoken');
 const UnauthorizedError = require('../errors/UnauthorizedError');
 
-module.exports = (req, res, next) => {
-  const { authorization } = req.headers;
+const auth = (req, res, next) => {
+  const token = req.headers.authorization;
 
-  if (!authorization || !authorization.startsWith('Bearer')) {
-    return next(new UnauthorizedError('Авторизуйтесь'));
+  if (!token) {
+    throw new UnauthorizedError('Authorization token not found');
   }
-
-  const token = authorization.replace('Bearer ', '');
-  let payload;
 
   try {
-    payload = jwt.verify(token, 'some-secret-key');
+    const payload = jwt.verify(token, 'some-secret-key');
+    req.user = payload;
+    next();
   } catch (err) {
-    throw new UnauthorizedError('Авторизуйтесь');
+    throw new UnauthorizedError('Invalid authorization token');
   }
-
-  req.user = payload;
-  return next();
 };
+
+module.exports = auth;

@@ -3,9 +3,12 @@ const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const { errors } = require('celebrate');
 const router = require('./routes');
+const NotFoundError = require('./errors/NotFoundError');
 const ErrorHandler = require('./middlewares/error');
 const auth = require('./middlewares/auth');
-const authRout = require('./routes/auth');
+const authRout = require('./routes/authRout');
+const { createUser, login } = require('./controllers/users');
+const { validationLogin, validationCreateUser } = require('./middlewares/validation');
 
 const app = express();
 
@@ -17,25 +20,32 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(router);
-app.use(ErrorHandler);
+
 app.use(auth);
 app.use(authRout);
 app.use(errors());
-
-app.use((req, res, next) => {
-  const error = new Error('Page not found');
-  res.status(404).send({ message: 'Page not found' });
-  next(error);
-});
+app.use(ErrorHandler);
+// app.use((req, res, next) => {
+//   const error = new Error('Page not found');
+//   res.status(404).send({ message: 'Page not found' });
+//   next(error);
+// });
 
 // eslint-disable-next-line no-unused-vars
-app.use((err, req, res) => {
-  res.status(err.status || 500);
-  res.json({
-    error: {
-      message: err.message,
-    },
-  });
+// app.use((err, req, res) => {
+//   res.status(err.status || 500);
+//   res.json({
+//     error: {
+//       message: err.message,
+//     },
+//   });
+// });
+
+app.post('/signin', login, validationLogin);
+app.post('/signup', createUser, validationCreateUser);
+
+router.use(() => {
+  throw new NotFoundError('Страница не найдена');
 });
 
 app.listen(3000, () => {

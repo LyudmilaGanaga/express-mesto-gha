@@ -1,10 +1,12 @@
 /* eslint-disable no-unused-vars */
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
 const User = require('../models/user');
 
 const BadRequest = require('../errors/BadRequest');
 const NotFoundError = require('../errors/NotFoundError');
+const UnauthorizedError = require('../errors/UnauthorizedError');
 
 const getUsers = async (req, res, next) => {
   try {
@@ -26,7 +28,7 @@ const getUserById = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return next(new BadRequest('BadRequest'));
+        next(new BadRequest('BadRequest'));
       }
       return next(err);
     });
@@ -35,9 +37,6 @@ const getUserById = (req, res, next) => {
 const getCurrentUser = (req, res, next) => {
   User.findById(req.user._id)
     .then((user) => {
-      if (!user) {
-        throw new NotFoundError('User not found');
-      }
       res.send(user);
     })
     .catch(next);
@@ -72,15 +71,16 @@ const createUser = (req, res, next) => {
 const login = (req, res) => {
   const { email, password } = req.body;
 
-  return User.findUserByCredentials(email, password)
+  User.findUserByCredentials(email, password)
     .then((user) => {
       // создадим токен
       const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
 
-      // вернём токен
-      res.send({ token });
+      res.cookie('jwt', token, { httpOnly: true });
+      res.status(200).send({ message: 'Login successful' });
     })
     .catch((err) => {
+      // ошибка аутентификации
       res
         .status(401)
         .send({ message: err.message });
@@ -103,8 +103,8 @@ const updateUser = (req, res, next) => {
       res.send({ data: user });
     })
     .catch((err) => {
-      if (err.name === 'BadRequest') {
-        next(new BadRequest('BadRequest'));
+      if (err.name === 'NotFoundError') {
+        next(new NotFoundError('NotFoundError'));
       } else {
         next(err);
       }
@@ -127,8 +127,8 @@ const updateAvatar = (req, res, next) => {
       res.send({ data: user });
     })
     .catch((err) => {
-      if (err.name === 'BadRequest') {
-        next(new BadRequest('BadRequest'));
+      if (err.name === 'NotFoundError') {
+        next(new NotFoundError('NotFoundError'));
       } else {
         next(err);
       }
