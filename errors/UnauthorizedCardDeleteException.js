@@ -3,6 +3,7 @@ class UnauthorizedCardDeleteException extends Error {
     super(message);
     this.name = 'UnauthorizedCardDeleteException';
     this.statusCode = 403;
+    this.message = message;
   }
 }
 
