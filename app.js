@@ -8,22 +8,13 @@ const NotFoundError = require('./errors/NotFoundError');
 const ErrorHandler = require('./middlewares/error');
 const auth = require('./middlewares/auth');
 const { createUser, login } = require('./controllers/users');
-const { validationCreateUser } = require('./middlewares/validation');
+const { URL_REGEX } = require('./utils/constants');
 
 const app = express();
 
 mongoose.connect('mongodb://127.0.0.1:27017/mestodb', {
   useNewUrlParser: true,
 });
-
-app.use(express.json());
-app.use(cookieParser());
-
-app.use(router);
-
-app.use(auth);
-app.use(errors());
-app.use(ErrorHandler);
 
 app.use((req, res, next) => {
   const error = new Error('Page not found');
@@ -47,7 +38,24 @@ app.post('/signin', celebrate({
   }),
 }), login);
 
-app.post('/signup', createUser, validationCreateUser);
+app.post('/signup', celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string().regex(URL_REGEX),
+    email: Joi.string().required().email(),
+    password: Joi.string().required(),
+  }),
+}), createUser);
+
+app.use(express.json());
+app.use(cookieParser());
+
+app.use(router);
+
+app.use(auth);
+app.use(errors());
+app.use(ErrorHandler);
 
 router.use(() => {
   throw new NotFoundError('Страница не найдена');
