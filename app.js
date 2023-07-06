@@ -1,13 +1,14 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
-const { errors } = require('celebrate');
+const { celebrate, Joi, errors } = require('celebrate');
+
 const router = require('./routes');
 const NotFoundError = require('./errors/NotFoundError');
 const ErrorHandler = require('./middlewares/error');
 const auth = require('./middlewares/auth');
 const { createUser, login } = require('./controllers/users');
-const { validationLogin, validationCreateUser } = require('./middlewares/validation');
+const { validationCreateUser } = require('./middlewares/validation');
 
 const app = express();
 
@@ -39,7 +40,13 @@ app.use((err, req, res) => {
   });
 });
 
-app.post('/signin', login, validationLogin);
+app.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required(),
+  }),
+}), login);
+
 app.post('/signup', createUser, validationCreateUser);
 
 router.use(() => {

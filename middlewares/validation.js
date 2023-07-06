@@ -12,14 +12,6 @@ const validationCreateUser = celebrate({
   }),
 });
 
-// логин юзера
-const validationLogin = celebrate({
-  body: Joi.object().keys({
-    email: Joi.string().required().email(),
-    password: Joi.string().required(),
-  }),
-});
-
 // получение юзера
 const validationGetUser = celebrate({
   params: Joi.object().keys({
@@ -58,7 +50,6 @@ const validationCardId = celebrate({
 });
 
 module.exports = {
-  validationLogin,
   validationCreateUser,
   validationCreateCard,
   validationUpdateAvatar,
