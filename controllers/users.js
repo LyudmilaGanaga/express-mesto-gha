@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -8,18 +7,19 @@ const BadRequest = require('../errors/BadRequest');
 const NotFoundError = require('../errors/NotFoundError');
 const UnauthorizedError = require('../errors/UnauthorizedError');
 
-const getUsers = async (req, res, next) => {
-  try {
-    const users = await User.find({});
-    res.status(200).send(users);
-  } catch (err) {
-    next(err);
-  }
+const getUsers = (req, res, next) => {
+  User.find({})
+    .then((users) => {
+      res.status(200).send({ data: users });
+    })
+    .catch((err) => {
+      next(err);
+    });
 };
 
 const getUserById = (req, res, next) => {
   User
-    .findById(req.params._id)
+    .findById(req.params.userId)
     .then((user) => {
       if (!user) {
         throw new NotFoundError('User not found');
@@ -35,11 +35,20 @@ const getUserById = (req, res, next) => {
 };
 
 const getCurrentUser = (req, res, next) => {
+  if (!req.user) {
+    throw new UnauthorizedError('User not authorized');
+  }
+
   User.findById(req.user._id)
     .then((user) => {
-      res.send(user);
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+      res.status(200).send({ data: user });
     })
-    .catch(next);
+    .catch((err) => {
+      next(err);
+    });
 };
 
 const createUser = (req, res, next) => {
@@ -68,19 +77,22 @@ const createUser = (req, res, next) => {
     .catch(next);
 };
 
-const login = (req, res) => {
+const login = (req, res, next) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    throw new BadRequest('Email and password are required');
+  }
 
   User.findUserByCredentials(email, password)
     .then((user) => {
-      // создадим токен
       const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
 
       res.cookie('jwt', token, { httpOnly: true });
       res.status(200).send({ message: 'Login successful' });
+      next();
     })
     .catch((err) => {
-      // ошибка аутентификации
       res
         .status(401)
         .send({ message: err.message });

@@ -6,7 +6,6 @@ const router = require('./routes');
 const NotFoundError = require('./errors/NotFoundError');
 const ErrorHandler = require('./middlewares/error');
 const auth = require('./middlewares/auth');
-const authRout = require('./routes/authRout');
 const { createUser, login } = require('./controllers/users');
 const { validationLogin, validationCreateUser } = require('./middlewares/validation');
 

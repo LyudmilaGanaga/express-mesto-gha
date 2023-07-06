@@ -40,16 +40,9 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// eslint-disable-next-line func-names
-userSchema.method.toJSON = function () {
-  const user = this.toObject();
-  delete user.password;
-
-  return user;
-};
-
 userSchema.statics.findUserByCredentials = function findUserByCredentials(email, password) {
   return this.findOne({ email }).select('+password')
+    // .orFail(new UnauthorizedError('UnauthorizedError'))
     .then((user) => {
       if (!user) {
         return Promise.reject(new UnauthorizedError('Неправильные почта или пароль'));
