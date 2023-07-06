@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const router = require('./routes');
 const ErrorHandler = require('./middlewares/error');
+const auth = require('./middlewares/auth');
 
 const app = express();
 
@@ -14,8 +15,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(router);
-
 app.use(ErrorHandler);
+app.use(auth);
 
 app.use((req, res, next) => {
   const error = new Error('Page not found');
@@ -24,11 +25,11 @@ app.use((req, res, next) => {
 });
 
 // eslint-disable-next-line no-unused-vars
-app.use((error, req, res) => {
-  res.status(error.status || 500);
+app.use((err, req, res) => {
+  res.status(err.status || 500);
   res.json({
     error: {
-      message: error.message,
+      message: err.message,
     },
   });
 });
