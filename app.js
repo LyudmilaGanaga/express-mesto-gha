@@ -22,24 +22,23 @@ app.use(cookieParser());
 app.use(router);
 
 app.use(auth);
-app.use(authRout);
 app.use(errors());
 app.use(ErrorHandler);
-// app.use((req, res, next) => {
-//   const error = new Error('Page not found');
-//   res.status(404).send({ message: 'Page not found' });
-//   next(error);
-// });
 
-// eslint-disable-next-line no-unused-vars
-// app.use((err, req, res) => {
-//   res.status(err.status || 500);
-//   res.json({
-//     error: {
-//       message: err.message,
-//     },
-//   });
-// });
+app.use((req, res, next) => {
+  const error = new Error('Page not found');
+  res.status(404).send({ message: 'Page not found' });
+  next(error);
+});
+
+app.use((err, req, res) => {
+  res.status(err.status || 500);
+  res.json({
+    error: {
+      message: err.message,
+    },
+  });
+});
 
 app.post('/signin', login, validationLogin);
 app.post('/signup', createUser, validationCreateUser);
