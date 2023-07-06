@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser');
 const router = require('./routes');
+const ErrorHandler = require('./middlewares/error');
 
 const app = express();
 
@@ -9,16 +11,11 @@ mongoose.connect('mongodb://127.0.0.1:27017/mestodb', {
 });
 
 app.use(express.json());
-
-app.use((req, res, next) => {
-  req.user = {
-    _id: '649222dfb263f0dcec204273',
-  };
-
-  next();
-});
+app.use(cookieParser());
 
 app.use(router);
+
+app.use(ErrorHandler);
 
 app.use((req, res, next) => {
   const error = new Error('Page not found');

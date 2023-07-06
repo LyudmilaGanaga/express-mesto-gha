@@ -1,128 +1,132 @@
+/* eslint-disable no-unused-vars */
+const bcrypt = require('bcryptjs');
+const jsonWebtoken = require('jsonwebtoken');
 const User = require('../models/user');
 
-const STATUS_NOT_FOUND = 404;
-const BAD_REQUEST = 400;
-const INTERNAL_SERVER_ERROR = 500;
+const BadRequest = require('../errors/BadRequest');
+const NotFoundError = require('../errors/NotFoundError');
 
-const getUsers = async (req, res) => {
+const getUsers = async (req, res, next) => {
   try {
     const users = await User.find({});
     res.status(200).send(users);
   } catch (err) {
-    res
-      .status(INTERNAL_SERVER_ERROR)
-      .send({
-        message: 'На сервере произошла ошибка',
-      });
+    next(err);
   }
 };
 
-const getUserById = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.userId)
-      .orFail(() => new Error('Not found'));
-    res.status(200).send(user);
-  } catch (err) {
-    if (err.message === 'Not found') {
-      res
-        .status(STATUS_NOT_FOUND)
-        .send({
-          message: 'User not found',
-        });
-    } else if (err.name === 'CastError') {
-      res
-        .status(BAD_REQUEST)
-        .send({
-          message: 'Bad Request',
-        });
-    } else {
-      res
-        .status(INTERNAL_SERVER_ERROR)
-        .send({
-          message: 'На сервере произошла ошибка',
-        });
-    }
-  }
-};
-
-const createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
-  User.create({ name, about, avatar })
-    .then((user) => res.status(201).send(user))
+const getUserById = (req, res, next) => {
+  User
+    .findById(req.params._id)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+      res.send({ data: user });
+    })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res
-          .status(BAD_REQUEST)
-          .send({
-            message: 'Bad Request',
-          });
+      if (err.name === 'CastError') {
+        return next(new BadRequest('BadRequest'));
+      }
+      return next(err);
+    });
+};
+
+const getCurrentUser = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+      res.send(user);
+    })
+    .catch(next);
+};
+
+const createUser = (req, res, next) => {
+  const {
+    name,
+    about,
+    avatar,
+    email,
+    password,
+  } = req.body;
+
+  bcrypt.hash(String(password), 10)
+    .then((hashedPassword) => User
+      .create(
+        {
+          name,
+          about,
+          avatar,
+          email,
+          password: hashedPassword,
+        },
+      ))
+    .then((user) => {
+      res.send(user);
+    })
+    .catch(next);
+};
+
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  return User
+    .findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jsonWebtoken({ _id: user._id }, 'SECRET', {
+        expiresIn: '7d',
+      });
+      res.send({ jsonWebtoken });
+    })
+    .catch(next);
+};
+
+const updateUser = (req, res, next) => {
+  const { name, about } = req.body;
+  const reqUserId = req.user._id;
+  User
+    .findByIdAndUpdate(
+      reqUserId,
+      { name, about },
+      { new: true, runValidators: true },
+    )
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+      res.send({ data: user });
+    })
+    .catch((err) => {
+      if (err.name === 'BadRequest') {
+        next(new BadRequest('BadRequest'));
       } else {
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .send({
-            message: 'На сервере произошла ошибка',
-          });
+        next(err);
       }
     });
 };
 
-const updateUser = async (req, res) => {
-  const { name, about } = req.body;
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { name, about },
+const updateAvatar = (req, res, next) => {
+  const { avatar } = req.body;
+  const reqUserId = req.user._id;
+  User
+    .findByIdAndUpdate(
+      reqUserId,
+      { avatar },
       { new: true, runValidators: true },
     )
-      .orFail(() => new Error('Not found'));
-    res.status(200).send(user);
-  } catch (err) {
-    if (err.message === 'Not found') {
-      res
-        .status(STATUS_NOT_FOUND)
-        .send({
-          message: 'User not found',
-        });
-    } else if (err.name === 'ValidationError') {
-      res
-        .status(BAD_REQUEST)
-        .send({
-          message: 'Bad Request',
-        });
-    } else {
-      res
-        .status(INTERNAL_SERVER_ERROR)
-        .send({
-          message: 'На сервере произошла ошибка',
-        });
-    }
-  }
-};
-
-const updateAvatar = (req, res) => {
-  const { avatar } = req.body;
-
-  User.findByIdAndUpdate(req.user._id, { avatar }, { new: true, runValidators: true })
-    .then((user) => res.status(200).send({ data: user }))
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+      res.send({ data: user });
+    })
     .catch((err) => {
-      if (err.message === 'Not found') {
-        res
-          .status(STATUS_NOT_FOUND)
-          .send({
-            message: 'User not found',
-          });
-      } else if (err.message === 'Bad Request') {
-        res
-          .status(BAD_REQUEST)
-          .send({
-            message: 'Bad Request',
-          });
+      if (err.name === 'BadRequest') {
+        next(new BadRequest('BadRequest'));
       } else {
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .send({
-            message: 'На сервере произошла ошибка',
-          });
+        next(err);
       }
     });
 };
@@ -133,4 +137,6 @@ module.exports = {
   createUser,
   updateUser,
   updateAvatar,
+  login,
+  getCurrentUser,
 };
