@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const router = require('./routes');
 const ErrorHandler = require('./middlewares/error');
 const auth = require('./middlewares/auth');
+const authRout = require('./routes/auth');
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(cookieParser());
 app.use(router);
 app.use(ErrorHandler);
 app.use(auth);
+app.use(authRout);
 
 app.use((req, res, next) => {
   const error = new Error('Page not found');
