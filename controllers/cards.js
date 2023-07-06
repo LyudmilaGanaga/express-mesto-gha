@@ -1,6 +1,6 @@
-const NotFoundError = require('../errors/NotFoundError');
 const Card = require('../models/card');
 
+const NotFoundError = require('../errors/NotFoundError');
 const BadRequest = require('../errors/BadRequest');
 const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
 
@@ -34,11 +34,11 @@ const deleteCard = (req, res, next) => {
     .then((card) => {
       if (!card) {
         throw new NotFoundError('Card not found');
-      } else if (card.owner.toString() !== req.user._id) {
+      } else if (card.owner.toString() !== req.user._id.toString()) {
         throw new UnauthorizedCardDeleteException('Запрет удаления');
       } else {
-        Card.findByIdAndRemove(cardId)
-          .then((removedCard) => res.status(200).send(removedCard))
+        Card.deleteOne(cardId)
+          .then(() => res.status(200).send(card))
           .catch((err) => {
             next(err);
           });
@@ -66,7 +66,7 @@ const likeCard = (req, res, next) => {
           { $addToSet: { likes: req.user._id } },
           { new: true },
         )
-          .then((removedCard) => res.status(200).send(removedCard))
+          .then(() => res.status(200).send(card))
           .catch((err) => {
             next(err);
           });
@@ -94,7 +94,7 @@ const dislikeCard = (req, res, next) => {
           { $pull: { likes: req.user._id } },
           { new: true },
         )
-          .then((removedCard) => res.status(200).send(removedCard))
+          .then(() => res.status(200).send(card))
           .catch((err) => {
             next(err);
           });
