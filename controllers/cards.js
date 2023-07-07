@@ -31,22 +31,23 @@ const deleteCard = (req, res, next) => {
   const { cardId } = req.params;
 
   Card.findById(cardId)
+    .populate('owner')
+    .orFail(() => new Error('Not found'))
     .then((card) => {
       if (!card) {
         throw new NotFoundError('Card not found');
-      } else if (!card.owner.equals(req.user.cardId)) {
-        throw new UnauthorizedCardDeleteException('Запрет удаления');
-      } else {
-        Card.findOneAndDelete({ _id: cardId })
-          .then((deletedCard) => res.status(200).send(deletedCard))
-          .catch((err) => {
-            next(err);
-          });
       }
+      return Card.deleteOne({ _id: cardId })
+        .then(() => res.status(200).send(card))
+        .catch((err) => {
+          next(err);
+        });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
         next(new BadRequest('BadRequest'));
+      } else if (err.message === 'Not found') {
+        next(new NotFoundError());
       } else {
         next(err);
       }
