@@ -1,12 +1,39 @@
+const express = require('express');
 const router = require('express').Router();
-const NotFoundError = require('../errors/NotFoundError');
+
+const { celebrate, Joi } = require('celebrate');
 const userRoutes = require('./users');
 const cardRoutes = require('./cards');
 
-router.use('/users', userRoutes);
-router.use('/cards', cardRoutes);
+const NotFoundError = require('../errors/NotFoundError');
 
-router.use((req, res, next) => {
+const { createUser, login } = require('../controllers/users');
+const { auth } = require('../middlewares/auth');
+const { URL_REGEX } = require('../utils/constants');
+
+router.all('*', express.json());
+
+router.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required(),
+  }),
+}), login);
+
+router.post('/signup', celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string().regex(URL_REGEX),
+    email: Joi.string().required().email(),
+    password: Joi.string().required(),
+  }),
+}), createUser);
+
+router.use('/users', auth, userRoutes);
+router.use('/cards', auth, cardRoutes);
+
+router.all('*', (req, res, next) => {
   next(NotFoundError('Страница не найдена'));
 });
 
