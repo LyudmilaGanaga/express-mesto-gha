@@ -8,7 +8,7 @@ const cardRoutes = require('./cards');
 const NotFoundError = require('../errors/NotFoundError');
 
 const { createUser, login } = require('../controllers/users');
-const { auth } = require('../middlewares/auth');
+const auth = require('../middlewares/auth');
 const { URL_REGEX } = require('../utils/constants');
 
 router.all('*', express.json());
@@ -34,7 +34,7 @@ router.use('/users', auth, userRoutes);
 router.use('/cards', auth, cardRoutes);
 
 router.all('*', (req, res, next) => {
-  next(NotFoundError('Страница не найдена'));
+  next(new NotFoundError('Страница не найдена'));
 });
 
 module.exports = router;
