@@ -2,94 +2,89 @@ const Card = require('../models/card');
 
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequest = require('../errors/BadRequest');
-// const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
+const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
 
-const getCards = (req, res, next) => {
-  Card.find({})
-    .then((cards) => res.status(200).send({ data: cards }))
-    .catch((err) => {
-      next(err);
-    });
-};
+async function getCards(req, res, next) {
+  try {
+    const cards = await Card.find({});
+    res.send(cards);
+  } catch (err) {
+    next(err);
+  }
+}
 
-const createCard = (req, res, next) => {
-  const { name, link } = req.body;
-  const owner = req.user.cardId;
+async function createCard(req, res, next) {
+  try {
+    const { name, link } = req.body;
+    const ownerId = req.user._id;
+    const card = await Card.create({ name, link, owner: ownerId });
+    res.status(201).send(card);
+  } catch (err) {
+    if (err.name === 'CastError' || err.name === 'BadRequest') {
+      next(new BadRequest('BadRequest'));
+      return;
+    }
+    next(err);
+  }
+}
 
-  Card.create({ name, link, owner })
-    .then((card) => res.status(201).send(card))
-    .catch((err) => {
-      if (err.name === 'BadRequest') {
-        next(new BadRequest('BadRequest'));
-      } else {
-        next(err);
-      }
-    });
-};
+async function deleteCard(req, res, next) {
+  try {
+    const { cardId } = req.params;
+    const card = await Card.findById(cardId).populate('owner');
+    if (!card) {
+      throw new NotFoundError('Card not found');
+    }
+    const ownerId = card.owner.id;
+    const userId = req.user._id;
+    if (ownerId !== userId) {
+      throw new UnauthorizedCardDeleteException('UnauthorizedCardDeleteException');
+    }
+    await Card.findByIdAndRemove(cardId);
+    res.send(card);
+  } catch (err) {
+    next(err);
+  }
+}
 
-const deleteCard = (req, res, next) => {
-  const { cardId } = req.params;
+async function likeCard(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const card = await Card.findByIdAndUpdate(
+      req.params.cardId,
+      { $addToSet: { likes: userId } },
+      { new: true },
+    );
+    if (!card) {
+      throw new NotFoundError('Card not found');
+    }
+    res.send(card);
+  } catch (err) {
+    next(err);
+  }
+}
 
-  Card.findOneAndDelete({ _id: cardId })
-    .populate('owner')
-    .exec()
-    .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Card not found');
-      }
-      return res.status(200).send(card);
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new BadRequest('BadRequest'));
-      } else if (err instanceof NotFoundError) {
-        next(new NotFoundError());
-      } else {
-        next(err);
-      }
-    });
-};
+async function dislikeCard(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const card = await Card.findByIdAndUpdate(
+      req.params.cardId,
+      { $pull: { likes: userId } },
+      { new: true },
+    );
+    if (!card) {
+      throw new NotFoundError('Card not found');
+    }
 
-const likeCard = (req, res, next) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user.cardId } },
-    { new: true },
-  )
-    .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Card not found');
-      }
-      res.send({ data: card });
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new BadRequest('BadRequest'));
-      } else {
-        next(err);
-      }
-    });
-};
-
-const dislikeCard = (req, res, next) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user.cardId } },
-    { new: true },
-  )
-    .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Card not found');
-      }
-      return res.send({ data: card });
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        return next(new BadRequest('BadRequest'));
-      }
-      return next(err);
-    });
-};
+    res.send(card);
+  } catch (err) {
+    if (err.name === 'CastError' || err.name === 'BadRequest') {
+      next(new BadRequest('BadRequest'));
+      return;
+    }
+    next(err);
+  }
+}
 
 module.exports = {
   getCards,
