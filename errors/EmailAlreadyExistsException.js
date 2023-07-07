@@ -3,7 +3,7 @@ class EmailAlreadyExistsException extends Error {
     super(message);
     this.name = 'EmailAlreadyExistsException';
     this.statusCode = 409;
-    this.message = message;
+    // this.message = message;
   }
 }
 
