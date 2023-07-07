@@ -5,16 +5,11 @@ const User = require('../models/user');
 
 const BadRequest = require('../errors/BadRequest');
 const NotFoundError = require('../errors/NotFoundError');
-const UnauthorizedError = require('../errors/UnauthorizedError');
 
 const getUsers = (req, res, next) => {
   User.find({})
-    .then((users) => {
-      res.status(200).send({ data: users });
-    })
-    .catch((err) => {
-      next(err);
-    });
+    .then((users) => res.send(users))
+    .catch(next);
 };
 
 const getUserById = (req, res, next) => {
@@ -29,16 +24,13 @@ const getUserById = (req, res, next) => {
     .catch((err) => {
       if (err.name === 'CastError') {
         next(new BadRequest('BadRequest'));
+        return;
       }
-      return next(err);
+      next(err);
     });
 };
 
 const getCurrentUser = (req, res, next) => {
-  if (!req.user) {
-    throw new UnauthorizedError('User not authorized');
-  }
-
   User.findById(req.user._id)
     .then((user) => {
       if (!user) {
@@ -47,7 +39,11 @@ const getCurrentUser = (req, res, next) => {
       res.status(200).send({ data: user });
     })
     .catch((err) => {
-      next(err);
+      if (err.name === 'CastError') {
+        next(BadRequest('BadRequest'));
+      } else if (err.message === 'NotFound') {
+        next(new NotFoundError('User not found'));
+      } else next(err);
     });
 };
 
@@ -101,10 +97,10 @@ const login = (req, res, next) => {
 
 const updateUser = (req, res, next) => {
   const { name, about } = req.body;
-  const reqUserId = req.user._id;
+  // const req.user._id;
   User
     .findByIdAndUpdate(
-      reqUserId,
+      req,
       { name, about },
       { new: true, runValidators: true },
     )
@@ -115,20 +111,20 @@ const updateUser = (req, res, next) => {
       res.send({ data: user });
     })
     .catch((err) => {
-      if (err.name === 'NotFoundError') {
-        next(new NotFoundError('NotFoundError'));
-      } else {
-        next(err);
+      if (err.name === 'CastError') {
+        next(new BadRequest('BadRequest'));
+        return;
       }
+      next(err);
     });
 };
 
 const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
-  const reqUserId = req.user._id;
+  // const req = req.user._id;
   User
     .findByIdAndUpdate(
-      reqUserId,
+      req,
       { avatar },
       { new: true, runValidators: true },
     )

@@ -2,7 +2,7 @@ const Card = require('../models/card');
 
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequest = require('../errors/BadRequest');
-const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
+// const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
 
 const getCards = (req, res, next) => {
   Card.find({})
@@ -21,9 +21,9 @@ const createCard = (req, res, next) => {
     .catch((err) => {
       if (err.name === 'BadRequest') {
         next(new BadRequest('BadRequest'));
-        return;
+      } else {
+        next(err);
       }
-      next(err);
     });
 };
 
@@ -55,23 +55,16 @@ const deleteCard = (req, res, next) => {
 };
 
 const likeCard = (req, res, next) => {
-  const { cardId } = req.params;
-
-  Card.findById(cardId)
+  Card.findByIdAndUpdate(
+    req.params.cardId,
+    { $addToSet: { likes: req.user.cardId } },
+    { new: true },
+  )
     .then((card) => {
       if (!card) {
         throw new NotFoundError('Card not found');
-      } else {
-        Card.findByIdAndUpdate(
-          req.params.cardId,
-          { $addToSet: { likes: req.user.cardId } },
-          { new: true },
-        )
-          .then(() => res.status(200).send(card))
-          .catch((err) => {
-            next(err);
-          });
       }
+      res.send({ data: card });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
@@ -83,30 +76,22 @@ const likeCard = (req, res, next) => {
 };
 
 const dislikeCard = (req, res, next) => {
-  const { cardId } = req.params;
-
-  Card.findById(cardId)
+  Card.findByIdAndUpdate(
+    req.params.cardId,
+    { $addToSet: { likes: req.user.cardId } },
+    { new: true },
+  )
     .then((card) => {
       if (!card) {
         throw new NotFoundError('Card not found');
-      } else {
-        Card.findByIdAndUpdate(
-          req.params.cardId,
-          { $pull: { likes: req.user.cardId } },
-          { new: true },
-        )
-          .then(() => res.status(200).send(card))
-          .catch((err) => {
-            next(err);
-          });
       }
+      return res.send({ data: card });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequest('BadRequest'));
-      } else {
-        next(err);
+        return next(new BadRequest('BadRequest'));
       }
+      return next(err);
     });
 };
 

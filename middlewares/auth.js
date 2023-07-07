@@ -1,20 +1,23 @@
 const jwt = require('jsonwebtoken');
 const UnauthorizedError = require('../errors/UnauthorizedError');
 
-const auth = (req, res, next) => {
-  const token = req.headers.authorization;
+// eslint-disable-next-line consistent-return
+module.exports = (req, res, next) => {
+  const { authorization } = req.headers;
 
-  if (!token) {
-    throw new UnauthorizedError('Authorization token not found');
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    throw new UnauthorizedError('Необходима авторизация');
   }
+
+  const token = authorization.replace('Bearer ', '');
+  let payload;
 
   try {
-    const payload = jwt.verify(token, 'some-secret-key');
-    req.user = payload;
-    next();
+    payload = jwt.verify(token, 'some-secret-key');
   } catch (err) {
-    throw new UnauthorizedError('Invalid authorization token');
+    return next(new UnauthorizedError('Необходима авторизация'));
   }
-};
 
-module.exports = auth;
+  req.user = payload;
+  next();
+};
