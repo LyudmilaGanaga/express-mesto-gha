@@ -30,23 +30,19 @@ const createCard = (req, res, next) => {
 const deleteCard = (req, res, next) => {
   const { cardId } = req.params;
 
-  Card.findById(cardId)
+  Card.findOneAndDelete({ _id: cardId })
     .populate('owner')
-    .orFail(() => new Error('Not found'))
+    .exec()
     .then((card) => {
       if (!card) {
         throw new NotFoundError('Card not found');
       }
-      return Card.deleteOne({ _id: cardId })
-        .then(() => res.status(200).send(card))
-        .catch((err) => {
-          next(err);
-        });
+      return res.status(200).send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
         next(new BadRequest('BadRequest'));
-      } else if (err.message === 'Not found') {
+      } else if (err instanceof NotFoundError) {
         next(new NotFoundError());
       } else {
         next(err);
