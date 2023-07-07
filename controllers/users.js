@@ -97,7 +97,6 @@ const login = (req, res, next) => {
 
 const updateUser = (req, res, next) => {
   const { name, about } = req.body;
-  // const req.user._id;
   User
     .findByIdAndUpdate(
       req,
@@ -108,7 +107,7 @@ const updateUser = (req, res, next) => {
       if (!user) {
         throw new NotFoundError('User not found');
       }
-      res.send({ data: user });
+      res.status(404).send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
@@ -121,7 +120,6 @@ const updateUser = (req, res, next) => {
 
 const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
-  // const req = req.user._id;
   User
     .findByIdAndUpdate(
       req,
@@ -132,7 +130,7 @@ const updateAvatar = (req, res, next) => {
       if (!user) {
         throw new NotFoundError('User not found');
       }
-      res.send({ data: user });
+      res.status(404).send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'NotFoundError') {
