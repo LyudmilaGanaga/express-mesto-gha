@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 
 const cookieParser = require('cookie-parser');
+const { errors } = require('celebrate');
 const router = require('./routes');
 const ErrorHandler = require('./middlewares/error');
 
@@ -15,6 +16,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(router);
 app.use(ErrorHandler);
+app.use(errors());
+
+app.use((err, req, res) => {
+  res.status(err.statusCode || 500).send({ message: err.message });
+});
 
 app.listen(3000, () => {
   // eslint-disable-next-line no-console

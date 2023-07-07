@@ -1,11 +1,13 @@
-const ErrorHandler = (err, req, res, next) => {
-  const { statusCode = 500, message } = err;
-  res.status(statusCode).send({
-    message: statusCode === 500
-      ? 'Internal Server Error'
-      : message,
-  });
-  next();
-};
+/* eslint-disable no-unused-vars */
+function ErrorHandler(err, req, res, next) {
+  const { statusCode = 500 } = err;
+  let { message } = err;
 
-module.exports = ErrorHandler;
+  if (statusCode === 500) {
+    message = 'Ошибка';
+  }
+
+  res.status(statusCode).send({ message });
+}
+
+module.exports = { ErrorHandler };

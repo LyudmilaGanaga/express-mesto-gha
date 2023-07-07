@@ -10,15 +10,18 @@ const userSchema = new mongoose.Schema({
     minlength: 2,
     maxlength: 30,
     default: 'Жак-Ив Кусто',
+    required: false,
   },
   about: {
     type: String,
     minlength: 2,
     maxlength: 30,
     default: 'Исследователь',
+    required: false,
   },
   avatar: {
     type: String,
+    required: false,
     validate: {
       validator: (v) => validator.isURL(v),
       message: 'Invalid URL address',
@@ -41,7 +44,7 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-userSchema.statics.findUserByCredentials = function (email, password) {
+userSchema.statics.findUserByCredentials = function findUserByCredentials(email, password) {
   return this.findOne({ email }).select('+password')
     // .orFail(new UnauthorizedError('UnauthorizedError'))
     .then((user) => {
