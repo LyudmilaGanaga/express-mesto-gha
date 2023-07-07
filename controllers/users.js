@@ -1,144 +1,155 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
 const User = require('../models/user');
 
 const BadRequest = require('../errors/BadRequest');
 const NotFoundError = require('../errors/NotFoundError');
+const UnauthorizedError = require('../errors/UnauthorizedError');
+const EmailAlreadyExistsException = require('../errors/EmailAlreadyExistsException');
 
-const getUsers = (req, res, next) => {
-  User.find({})
-    .then((users) => res.send(users))
-    .catch(next);
-};
-
-const getUserById = (req, res, next) => {
-  User
-    .findById(req.params.userId)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('User not found');
-      }
-      res.send({ data: user });
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new BadRequest('BadRequest'));
-        return;
-      }
-      next(err);
-    });
-};
-
-const getCurrentUser = (req, res, next) => {
-  User.findById(req.userId)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('User not found');
-      }
-      res.status(200).send({ data: user });
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(BadRequest('BadRequest'));
-      } else if (err.message === 'NotFound') {
-        next(new NotFoundError('User not found'));
-      } else next(err);
-    });
-};
-
-const createUser = (req, res, next) => {
-  const {
-    name,
-    about,
-    avatar,
-    email,
-    password,
-  } = req.body;
-
-  bcrypt.hash(String(password), 10)
-    .then((hashedPassword) => User
-      .create(
-        {
-          name,
-          about,
-          avatar,
-          email,
-          password: hashedPassword,
-        },
-      ))
-    .then((user) => {
-      res.send(user);
-    })
-    .catch(next);
-};
-
-const login = (req, res, next) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    throw new BadRequest('Email and password are required');
+async function getUsers(req, res, next) {
+  try {
+    const users = await User.find({});
+    res.send(users);
+  } catch (err) {
+    next(err);
   }
+}
 
-  User.findUserByCredentials(email, password)
-    .then((userId) => {
-      const token = jwt.sign({ _id: userId }, 'some-secret-key', { expiresIn: '7d' });
+async function getUserById(req, res, next) {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
 
-      res.cookie('jwt', token, { httpOnly: true });
-      res.status(200).send({ message: 'Login successful' });
-      next();
-    })
-    .catch((err) => {
-      res
-        .status(401)
-        .send({ message: err.message });
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    res.send(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getCurrentUser(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    res.send(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createUser(req, res, next) {
+  try {
+    const {
+      email, password, name, about, avatar,
+    } = req.body;
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    let user = await User.create({
+      email,
+      password: passwordHash,
+      name,
+      about,
+      avatar,
     });
-};
 
-const updateUser = (req, res, next) => {
-  const { name, about } = req.body;
-  User
-    .findByIdAndUpdate(
-      req,
+    user = user.toObject();
+    delete user.password;
+    res.status(201).send(user);
+  } catch (err) {
+    if (err.name === 'BadRequest') {
+      next(new BadRequest('BadRequest'));
+      return;
+    }
+    if (err.code === 11000) {
+      next(new EmailAlreadyExistsException('Email Already Exists Exception'));
+      return;
+    }
+
+    next(err);
+  }
+}
+
+async function login(req, res, next) {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user) {
+      throw new UnauthorizedError('UnauthorizedError');
+    }
+
+    const hasRightPassword = await bcrypt.compare(password, user.password);
+
+    if (!hasRightPassword) {
+      throw new UnauthorizedError('UnauthorizedError');
+    }
+
+    const token = jwt.sign(
+      {
+        _id: user._id,
+      },
+      'secretkey',
+      {
+        expiresIn: '7d',
+      },
+    );
+
+    res.send({ jwt: token });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateUser(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const { name, about } = req.body;
+    const user = await User.findByIdAndUpdate(
+      userId,
       { name, about },
       { new: true, runValidators: true },
-    )
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('User not found');
-      }
-      res.status(404).send({ data: user });
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new BadRequest('BadRequest'));
-        return;
-      }
-      next(err);
-    });
-};
+    );
 
-const updateAvatar = (req, res, next) => {
-  const { avatar } = req.body;
-  User
-    .findByIdAndUpdate(
-      req,
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    res.send(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateAvatar(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const { avatar } = req.body;
+    const user = await User.findByIdAndUpdate(
+      userId,
       { avatar },
       { new: true, runValidators: true },
-    )
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('User not found');
-      }
-      res.status(404).send({ data: user });
-    })
-    .catch((err) => {
-      if (err.name === 'NotFoundError') {
-        next(new NotFoundError('NotFoundError'));
-      } else {
-        next(err);
-      }
-    });
-};
+    );
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    res.send(user);
+  } catch (err) {
+    next(err);
+  }
+}
 
 module.exports = {
   getUsers,
