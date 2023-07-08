@@ -7,6 +7,7 @@ const User = require('../models/user');
 const BadRequest = require('../errors/BadRequest');
 const NotFoundError = require('../errors/NotFoundError');
 const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
+const EmailAlreadyExistsException = require('../errors/EmailAlreadyExistsException');
 
 const getUsers = (req, res, next) => {
   User
@@ -35,21 +36,36 @@ const createUser = (req, res, next) => {
     password,
   } = req.body;
 
-  bcrypt.hash(String(password, 10))
-    .then((hashPassword) => {
-      User.create({
-        name,
-        about,
-        avatar,
-        email,
-        password: hashPassword,
-      })
-        .then((user) => {
-          res.status(201).send({ data: user });
-        })
-        .catch(next);
+  bcrypt.hash(password, 10)
+    .then((hashPassword) => User
+      .create(
+        {
+          name,
+          about,
+          avatar,
+          email,
+          password: hashPassword,
+        },
+      ))
+    .then((user) => {
+      res.status(201)
+        .send({
+          _id: user._id,
+          name: user.name,
+          about: user.about,
+          avatar: user.avatar,
+          email: user.email,
+        });
     })
-    .catch(next);
+    .catch((err) => {
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new BadRequest('BadRequest'));
+      }
+      if (err.name === 'MongoServerError' && err.code === 11000) {
+        return next(new EmailAlreadyExistsException('EmailAlreadyExistsException'));
+      }
+      return next(err);
+    });
 };
 
 const login = (req, res, next) => {
