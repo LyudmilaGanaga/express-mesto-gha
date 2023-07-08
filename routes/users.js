@@ -8,7 +8,9 @@ const {
 const { URL_REGEX } = require('../utils/constants');
 
 router.get('/', getUsers);
-router.get('/me/', getCurrentUser);
+
+//  возвращает информацию о текущем пользователе.
+router.get('/me', getCurrentUser);
 
 router.get('/:userId', celebrate({
   params: Joi.object().keys({

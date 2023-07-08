@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Card = require('../models/card');
 
 const NotFoundError = require('../errors/NotFoundError');
@@ -27,25 +28,23 @@ async function createCard(req, res, next) {
     next(err);
   }
 }
-
-async function deleteCard(req, res, next) {
-  try {
-    const { cardId } = req.params;
-    const card = await Card.findById(cardId).populate('owner');
-    if (!card) {
-      throw new NotFoundError('Card not found');
-    }
-    const ownerId = card.owner.id;
-    const userId = req.user._id;
-    if (ownerId !== userId) {
-      throw new UnauthorizedCardDeleteException('UnauthorizedCardDeleteException');
-    }
-    await Card.findByIdAndRemove(cardId);
-    res.send(card);
-  } catch (err) {
-    next(err);
-  }
-}
+const deleteCard = (req, res, next) => {
+  Card.findById(req.params.cardId)
+    .orFail(new NotFoundError('Card not found'))
+    .then((card) => {
+      if (card.owner.toString() !== req.user._id) {
+        throw new UnauthorizedCardDeleteException('UnauthorizedCardDeleteException');
+      }
+      return Card.findByIdAndRemove(req.params.cardId);
+    })
+    .then((card) => res.send(card))
+    .catch((err) => {
+      if (err instanceof mongoose.Error.CastError) {
+        return next(new BadRequest('BadRequest'));
+      }
+      return next(err);
+    });
+};
 
 async function likeCard(req, res, next) {
   try {

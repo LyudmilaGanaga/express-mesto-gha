@@ -1,155 +1,128 @@
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const jsonWebToken = require('jsonwebtoken');
 
 const User = require('../models/user');
 
 const BadRequest = require('../errors/BadRequest');
 const NotFoundError = require('../errors/NotFoundError');
-const UnauthorizedError = require('../errors/UnauthorizedError');
-const EmailAlreadyExistsException = require('../errors/EmailAlreadyExistsException');
+const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
 
-async function getUsers(req, res, next) {
-  try {
-    const users = await User.find({});
-    res.send(users);
-  } catch (err) {
-    next(err);
-  }
-}
-
-async function getUserById(req, res, next) {
-  try {
-    const { userId } = req.params;
-    const user = await User.findById(userId);
-
-    if (!user) {
+const getUsers = (req, res, next) => {
+  User
+    .find({})
+    .orFail(() => {
       throw new NotFoundError('User not found');
-    }
-
-    res.send(user);
-  } catch (err) {
-    next(err);
-  }
-}
-
-async function getCurrentUser(req, res, next) {
-  try {
-    const userId = req.user._id;
-    const user = await User.findById(userId);
-
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
-
-    res.send(user);
-  } catch (err) {
-    next(err);
-  }
-}
-
-async function createUser(req, res, next) {
-  try {
-    const {
-      email, password, name, about, avatar,
-    } = req.body;
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    let user = await User.create({
-      email,
-      password: passwordHash,
-      name,
-      about,
-      avatar,
+    })
+    .then((users) => res.status(200).send({ data: users }))
+    .catch((err) => {
+      next(err);
     });
+};
 
-    user = user.toObject();
-    delete user.password;
-    res.status(201).send(user);
-  } catch (err) {
-    if (err.name === 'BadRequest') {
-      next(new BadRequest('BadRequest'));
-      return;
-    }
-    if (err.code === 11000) {
-      next(new EmailAlreadyExistsException('Email Already Exists Exception'));
-      return;
-    }
+const getCurrentUser = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((user) => res.send(user))
+    .catch(next);
+};
 
-    next(err);
-  }
-}
+const createUser = (req, res, next) => {
+  const {
+    name,
+    about,
+    avatar,
+    email,
+    password,
+  } = req.body;
 
-async function login(req, res, next) {
-  try {
-    const { email, password } = req.body;
+  bcrypt.hash(String(password, 10))
+    .then((hashPassword) => {
+      User.create({
+        name,
+        about,
+        avatar,
+        email,
+        password: hashPassword,
+      })
+        .then((user) => {
+          res.send({ data: user });
+        })
+        .catch(next);
+    })
+    .catch(next);
+};
 
-    const user = await User.findOne({ email }).select('+password');
+const login = (req, res, next) => {
+  const { email, password } = req.body;
+  User.findOne({ email })
+    .select('+password')
+    .orFail(() => new Error('User not found'))
+    .then((user) => {
+      bcrypt.compare(String(password), user.password)
+        .then((isValidUser) => {
+          if (isValidUser) {
+            const jwt = jsonWebToken.sign({
+              _id: user._id,
+            }, 'SECRET');
+            res.cookie('jwt', jwt, {
+              maxAge: '7d',
+              httpOnly: true,
+              sameSite: true,
+            });
+            res.send({ data: user.toJSON() });
+          } else {
+            next(new UnauthorizedCardDeleteException('BadRequest'));
+          }
+        });
+    })
+    .cath(next);
+};
 
-    if (!user) {
-      throw new UnauthorizedError('UnauthorizedError');
-    }
+const getUserById = (req, res, next) => {
+  User.findById(req.params.userId)
+    .orFail(new NotFoundError('User not found.'))
+    .then((users) => res.send(users))
+    .catch((err) => {
+      if (err instanceof mongoose.Error.CastError) {
+        return next(new BadRequest('BadRequest'));
+      }
+      return next(err);
+    });
+};
 
-    const hasRightPassword = await bcrypt.compare(password, user.password);
+const updateUser = (req, res, next) => {
+  const { name, about } = req.body;
+  User.findByIdAndUpdate(
+    req.user._id,
+    { name, about },
+    { new: true, runValidators: true },
+  )
+    .orFail(new NotFoundError('User not found.'))
+    .then((user) => res.send(user))
+    .catch((err) => {
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new BadRequest('BadRequest'));
+      }
+      return next(err);
+    });
+};
 
-    if (!hasRightPassword) {
-      throw new UnauthorizedError('UnauthorizedError');
-    }
-
-    const token = jwt.sign(
-      {
-        _id: user._id,
-      },
-      'secretkey',
-      {
-        expiresIn: '7d',
-      },
-    );
-
-    res.send({ jwt: token });
-  } catch (err) {
-    next(err);
-  }
-}
-
-async function updateUser(req, res, next) {
-  try {
-    const userId = req.user._id;
-    const { name, about } = req.body;
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { name, about },
-      { new: true, runValidators: true },
-    );
-
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
-
-    res.send(user);
-  } catch (err) {
-    next(err);
-  }
-}
-
-async function updateAvatar(req, res, next) {
-  try {
-    const userId = req.user._id;
-    const { avatar } = req.body;
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { avatar },
-      { new: true, runValidators: true },
-    );
-
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
-
-    res.send(user);
-  } catch (err) {
-    next(err);
-  }
-}
+const updateAvatar = (req, res, next) => {
+  const { avatar } = req.body;
+  User.findByIdAndUpdate(
+    req.user._id,
+    { avatar },
+    { new: true, runValidators: true },
+  )
+    .orFail(new NotFoundError('User not found.'))
+    .then((user) => res.send(user))
+    .catch((err) => {
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new BadRequest('BadRequest'));
+      }
+      return next(err);
+    });
+};
 
 module.exports = {
   getUsers,

@@ -1,5 +1,4 @@
-/* eslint-disable no-unused-vars */
-function ErrorHandler(err, req, res, next) {
+const errorHandler = (err, req, res, next) => {
   const { statusCode = 500 } = err;
   let { message } = err;
 
@@ -8,6 +7,7 @@ function ErrorHandler(err, req, res, next) {
   }
 
   res.status(statusCode).send({ message });
-}
+  next();
+};
 
-module.exports = { ErrorHandler };
+module.exports = { errorHandler };
