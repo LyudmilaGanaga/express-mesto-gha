@@ -22,9 +22,22 @@ const getUsers = (req, res, next) => {
 };
 
 const getCurrentUser = (req, res, next) => {
-  User.findById(req.user._id)
-    .then((user) => res.send(user))
-    .catch(next);
+  User
+    .findById(req.user._id)
+    .orFail(() => {
+      throw new NotFoundError('User not found');
+    })
+    .then((user) => res
+      .status(200)
+      .send({ data: user }))
+
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        next(new BadRequest('BadRequest'));
+      } else {
+        next(err);
+      }
+    });
 };
 
 const createUser = (req, res, next) => {
