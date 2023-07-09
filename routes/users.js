@@ -4,7 +4,7 @@ const {
   getUsers, getUserById, updateUser, updateAvatar, getCurrentUser,
 } = require('../controllers/users');
 
-const URL_REGEX = /(https?:\/\/)(www)?([a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=])*#?$/;
+const regularURL = /(https?:\/\/)(www)?([a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=])*#?$/;
 
 router.get('/', getUsers);
 
@@ -26,7 +26,7 @@ router.patch('/me', celebrate({
 
 router.patch('/me/avatar', celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string().uri().regex(URL_REGEX).required(),
+    avatar: Joi.string().required().pattern(regularURL),
   }),
 }), updateAvatar);
 
