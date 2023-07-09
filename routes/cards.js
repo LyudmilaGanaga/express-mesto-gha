@@ -4,7 +4,7 @@ const {
   getCards, createCard, deleteCard, likeCard, dislikeCard,
 } = require('../controllers/cards');
 
-const { URL_REGEX } = require('../utils/constants');
+const URL_REGEX = /(https?:\/\/)(www)?([a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=])*#?$/;
 
 router.get('/', getCards);
 

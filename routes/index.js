@@ -1,13 +1,13 @@
 const router = require('express').Router();
-const { celebrate } = require('celebrate');
-const Joi = require('joi');
-const { URL_REGEX } = require('../utils/constants');
-
+const { celebrate, Joi } = require('celebrate');
+const auth = require('../middlwares/auth');
 const userRoutes = require('./users');
 const cardRoutes = require('./cards');
-
 const { createUser, login } = require('../controllers/users');
-const auth = require('../middlwares/auth');
+
+const NotFoundError = require('../errors/NotFoundError');
+
+const URL_REGEX = /(https?:\/\/)(www)?([a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=])*#?$/;
 
 // авторизация
 router.post('/signin', celebrate({
@@ -32,5 +32,9 @@ router.use(auth);
 
 router.use('/users', userRoutes);
 router.use('/cards', cardRoutes);
+
+router.use((req, res, next) => {
+  next(new NotFoundError('NotFoundError'));
+});
 
 module.exports = router;
