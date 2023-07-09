@@ -6,10 +6,12 @@ const User = require('../models/user');
 
 const BadRequest = require('../errors/BadRequest');
 const NotFoundError = require('../errors/NotFoundError');
-const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
+// const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
 const EmailAlreadyExistsException = require('../errors/EmailAlreadyExistsException');
 
 const getUsers = (req, res, next) => {
+  // eslint-disable-next-line no-console
+  console.log('Ок');
   User
     .find({})
     .orFail(() => {
@@ -83,32 +85,44 @@ const createUser = (req, res, next) => {
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
-  User.findOne({ email })
-    .select('+password')
-    .orFail(() => new Error('User not found'))
+  return User.findUserByCredentials(email, password)
     .then((user) => {
-      bcrypt.compare(String(password), user.password)
-        .then((isValidUser) => {
-          if (isValidUser) {
-            const jwt = jsonWebToken.sign({
-              _id: user._id,
-            }, 'SECRET');
-            res.cookie('jwt', jwt, {
-              maxAge: '7d',
-              httpOnly: true,
-              sameSite: true,
-            });
-            res.send({ data: user.toJSON() });
-          } else {
-            next(new UnauthorizedCardDeleteException('BadRequest'));
-          }
-        });
+      const token = jsonWebToken.sign({ _id: user._id }, 'SECRET', { expiresIn: '7d' });
+      res.status(200).send({ token });
     })
-    .cath(next);
+    .catch(next);
 };
 
+// const login = (req, res, next) => {
+//   const { email, password } = req.body;
+//   User.findOne({ email })
+//     .select('+password')
+//     .orFail(() => new Error('User not found'))
+//     .then((user) => {
+//       bcrypt.compare(String(password), user.password)
+//         .then((isValidUser) => {
+//           if (isValidUser) {
+//             const jwt = jsonWebToken.sign({
+//               _id: user._id,
+//             }, 'SECRET');
+//             res.cookie('jwt', jwt, {
+//               maxAge: '7d',
+//               httpOnly: true,
+//               sameSite: true,
+//             });
+//             res.send({ data: user.toJSON() });
+//           } else {
+//             next(new UnauthorizedCardDeleteException('BadRequest'));
+//           }
+//         });
+//     })
+//     .cath(next);
+// };
+
 const getUserById = (req, res, next) => {
-  User.findById(req.params.userId)
+  const { userId } = req.params;
+
+  User.findById(userId)
     .orFail(new NotFoundError('User not found.'))
     .then((users) => res.send(users))
     .catch((err) => {
