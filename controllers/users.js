@@ -10,7 +10,6 @@ const Conflict = require('../errors/Conflict');
 
 const getUsers = (req, res, next) => {
   // eslint-disable-next-line no-console
-  // console.log('Ок');
   User
     .find({})
     .orFail(() => {

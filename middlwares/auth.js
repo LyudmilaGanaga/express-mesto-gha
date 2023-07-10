@@ -3,8 +3,7 @@ const UnauthorizedError = require('../errors/UnauthorizedError');
 
 module.exports = (req, res, next) => {
   const { authorization } = req.headers;
-  // // eslint-disable-next-line no-console
-  // console.log(req.headers);
+  // eslint-disable-next-line no-console
   if (!authorization || !authorization.startsWith('Bearer ')) {
     throw new UnauthorizedError('Необходима авторизация');
   }
