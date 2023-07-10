@@ -3,7 +3,7 @@ const Card = require('../models/card');
 
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequest = require('../errors/BadRequest');
-const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
+const Forbidden = require('../errors/Forbidden');
 
 const getCards = (req, res, next) => {
   Card
@@ -30,14 +30,16 @@ const createCard = (req, res, next) => {
 
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
-        next(new BadRequest('BadRequest'));
+        next(new BadRequest('Плохой запрос'));
       } else {
         next(err);
       }
     });
 };
+
 const deleteCard = (req, res, next) => {
   const { cardId } = req.params;
+
   Card
     .findById(cardId)
     .orFail(() => {
@@ -53,17 +55,18 @@ const deleteCard = (req, res, next) => {
           })
           .catch(next);
       } else {
-        throw new UnauthorizedCardDeleteException('UnauthorizedCardDeleteException');
+        throw new Forbidden('Доступ запрещён');
       }
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequest('BadRequest'));
+        next(new BadRequest('Плохой запрос'));
       } else {
         next(err);
       }
     });
 };
+
 const likeCard = (req, res, next) => {
   const { cardId } = req.params;
 
@@ -80,34 +83,34 @@ const likeCard = (req, res, next) => {
 
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequest('BadRequest'));
+        next(new BadRequest('Плохой запрос'));
       } else {
         next(err);
       }
     });
 };
 
-async function dislikeCard(req, res, next) {
-  try {
-    const userId = req.user._id;
-    const card = await Card.findByIdAndUpdate(
-      req.params.cardId,
-      { $pull: { likes: userId } },
-      { new: true },
-    );
-    if (!card) {
-      throw new NotFoundError('Card not found');
-    }
-
-    res.send(card);
-  } catch (err) {
-    if (err.name === 'CastError' || err.name === 'BadRequest') {
-      next(new BadRequest('BadRequest'));
-      return;
-    }
-    next(err);
-  }
-}
+const dislikeCard = (req, res, next) => {
+  const userId = req.user._id;
+  Card.findByIdAndUpdate(
+    req.params.cardId,
+    { $pull: { likes: userId } },
+    { new: true },
+  )
+    .then((card) => {
+      if (!card) {
+        throw new NotFoundError('Card not found');
+      }
+      res.send(card);
+    })
+    .catch((err) => {
+      if (err.name === 'CastError' || err.name === 'BadRequest') {
+        next(new BadRequest('Плохой запрос'));
+        return;
+      }
+      next(err);
+    });
+};
 
 module.exports = {
   getCards,

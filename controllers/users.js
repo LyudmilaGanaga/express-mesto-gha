@@ -6,12 +6,11 @@ const User = require('../models/user');
 
 const BadRequest = require('../errors/BadRequest');
 const NotFoundError = require('../errors/NotFoundError');
-// const UnauthorizedCardDeleteException = require('../errors/UnauthorizedCardDeleteException');
-const EmailAlreadyExistsException = require('../errors/EmailAlreadyExistsException');
+const Conflict = require('../errors/Conflict');
 
 const getUsers = (req, res, next) => {
   // eslint-disable-next-line no-console
-  console.log('Ок');
+  // console.log('Ок');
   User
     .find({})
     .orFail(() => {
@@ -35,7 +34,7 @@ const getCurrentUser = (req, res, next) => {
 
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequest('BadRequest'));
+        next(new BadRequest('Плохой запрос'));
       } else {
         next(err);
       }
@@ -77,7 +76,7 @@ const createUser = (req, res, next) => {
         return next(new BadRequest('BadRequest'));
       }
       if (err.name === 'MongoServerError' && err.code === 11000) {
-        return next(new EmailAlreadyExistsException('EmailAlreadyExistsException'));
+        return next(new Conflict('Конфликт запроса'));
       }
       return next(err);
     });
@@ -85,6 +84,7 @@ const createUser = (req, res, next) => {
 
 const login = (req, res, next) => {
   const { email, password } = req.body;
+
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jsonWebToken.sign({ _id: user._id }, 'SECRET', { expiresIn: '7d' });
@@ -92,32 +92,6 @@ const login = (req, res, next) => {
     })
     .catch(next);
 };
-
-// const login = (req, res, next) => {
-//   const { email, password } = req.body;
-//   User.findOne({ email })
-//     .select('+password')
-//     .orFail(() => new Error('User not found'))
-//     .then((user) => {
-//       bcrypt.compare(String(password), user.password)
-//         .then((isValidUser) => {
-//           if (isValidUser) {
-//             const jwt = jsonWebToken.sign({
-//               _id: user._id,
-//             }, 'SECRET');
-//             res.cookie('jwt', jwt, {
-//               maxAge: '7d',
-//               httpOnly: true,
-//               sameSite: true,
-//             });
-//             res.send({ data: user.toJSON() });
-//           } else {
-//             next(new UnauthorizedCardDeleteException('BadRequest'));
-//           }
-//         });
-//     })
-//     .cath(next);
-// };
 
 const getUserById = (req, res, next) => {
   const { userId } = req.params;
@@ -127,7 +101,7 @@ const getUserById = (req, res, next) => {
     .then((users) => res.send(users))
     .catch((err) => {
       if (err instanceof mongoose.Error.CastError) {
-        return next(new BadRequest('BadRequest'));
+        return next(new BadRequest('Плохой запрос'));
       }
       return next(err);
     });
@@ -135,6 +109,7 @@ const getUserById = (req, res, next) => {
 
 const updateUser = (req, res, next) => {
   const { name, about } = req.body;
+
   User.findByIdAndUpdate(
     req.user._id,
     { name, about },
@@ -144,7 +119,7 @@ const updateUser = (req, res, next) => {
     .then((user) => res.send(user))
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
-        return next(new BadRequest('BadRequest'));
+        return next(new BadRequest('Плохой запрос'));
       }
       return next(err);
     });
@@ -152,6 +127,7 @@ const updateUser = (req, res, next) => {
 
 const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
+
   User.findByIdAndUpdate(
     req.user._id,
     { avatar },
@@ -161,7 +137,7 @@ const updateAvatar = (req, res, next) => {
     .then((user) => res.send(user))
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
-        return next(new BadRequest('BadRequest'));
+        return next(new BadRequest('Плохой запрос'));
       }
       return next(err);
     });

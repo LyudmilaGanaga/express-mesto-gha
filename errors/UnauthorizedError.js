@@ -3,7 +3,6 @@ class UnauthorizedError extends Error {
     super(message);
     this.name = 'UnauthorizedError';
     this.statusCode = 401;
-    // this.message = message;
   }
 }
 
